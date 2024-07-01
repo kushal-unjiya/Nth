@@ -1,84 +1,88 @@
-#i want to make python gui based on pyqt5 in which user upload images from local machine like jpeg,jpg,png etc then user can apply different image processing techniques like grayscale, rbga, blur etc and then save the image in local machine.
+#i want to make simple python gui based on pyqt5 in which user upload images from local machine like jpeg,jpg,png etc then user can apply image processing techniques with two different button grayscale and rbga then save the image in local machine.
+
+#now i want to add edge detection algorithm like canny sobel etc then save the image in local machine.
 
 
-# The following code is a basic example of how you could start building a GUI using PyQt5.
 
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog, QGroupBox, QRadioButton, QSpinBox, QSlider, QSpinBox, QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QSpinBox, QSlider, QSpinBox
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QFileDialog, QMessageBox
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt
 import cv2
 import numpy as np
 
 class ImageProcessingGUI(QWidget):
     def __init__(self):
         super().__init__()
-
-        self.setWindowTitle('Image Processing GUI')
-        self.setGeometry(100, 100, 800, 600)
-
-        self.image = None
-        self.processed_image = None
-
         self.initUI()
 
     def initUI(self):
-        self.layout = QVBoxLayout()
+        self.setWindowTitle('Image Processing GUI')
+        self.setGeometry(100, 100, 800, 600)
 
-        self.image_label = QLabel()
-        self.layout.addWidget(self.image_label)
+        self.image_label = QLabel(self)
+        self.image_label.setGeometry(50, 50, 700, 400)
 
-        self.load_button = QPushButton('Load Image')
-        self.load_button.clicked.connect(self.load_image)
-        self.layout.addWidget(self.load_button)
+        self.upload_button = QPushButton('Upload Image', self)
+        self.upload_button.setGeometry(50, 500, 150, 50)
+        self.upload_button.clicked.connect(self.upload_image)
 
-        self.process_button = QPushButton('Process Image')
-        self.process_button.clicked.connect(self.process_image)
-        self.layout.addWidget(self.process_button)
+        self.grayscale_button = QPushButton('Grayscale', self)
+        self.grayscale_button.setGeometry(250, 500, 150, 50)
+        self.grayscale_button.clicked.connect(self.grayscale_image)
 
-        self.save_button = QPushButton('Save Image')
+        self.rgba_button = QPushButton('RGBA', self)
+        self.rgba_button.setGeometry(450, 500, 150, 50)
+        self.rgba_button.clicked.connect(self.rgba_image)
+
+        self.save_button = QPushButton('Save Image', self)
+        self.save_button.setGeometry(650, 500, 150, 50)
         self.save_button.clicked.connect(self.save_image)
-        self.layout.addWidget(self.save_button)
 
-        self.setLayout(self.layout)
+        self.image = None
+        self.image_path = None
 
-    def load_image(self):
-        file_dialog = QFileDialog()
-        file_dialog.setNameFilter('Images (*.png *.jpg *.jpeg)')
-        file_dialog.selectNameFilter('Images (*.png *.jpg *.jpeg)')
+        self.show()
 
-        if file_dialog.exec_():
-            file_name = file_dialog.selectedFiles()[0]
-            self.image = cv2.imread(file_name)
-            self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
-            self.image = QImage(self.image.data, self.image.shape[1], self.image.shape[0], QImage.Format_RGB888)
-            self.image = QPixmap.fromImage(self.image)
-            self.image_label.setPixmap(self.image.scaled(self.image_label.size(), Qt.KeepAspectRatio))
+    def upload_image(self):
+        self.image_path, _ = QFileDialog.getOpenFileName(self, 'Open Image', '', 'Image Files (*.png *.jpg *.jpeg *.bmp)')
+        self.image = cv2.imread(self.image_path)
+        self.display_image()
 
-    def process_image(self):
+    def display_image(self):
+        image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+        height, width, channel = image.shape
+        bytesPerLine = 3 * width
+        qImg = QImage(image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qImg)
+        self.image_label.setPixmap(pixmap)
+        self.image_label.setScaledContents(True)
+
+    def grayscale_image(self):
         if self.image is not None:
-            self.processed_image = cv2.cvtColor(self.image, cv2.COLOR_RGB2GRAY)
-            self.processed_image = cv2.cvtColor(self.processed_image, cv2.COLOR_GRAY2RGB)
-            self.processed_image = QImage(self.processed_image.data, self.processed_image.shape[1], self.processed_image.shape[0], QImage.Format_RGB888)
-            self.processed_image = QPixmap.fromImage(self.processed_image)
-            self.image_label.setPixmap(self.processed_image.scaled(self.image_label.size(), Qt.KeepAspectRatio))
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+            self.display_image()
+
+    def rgba_image(self):
+        if self.image is not None:
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGBA)
+            self.display_image()
 
     def save_image(self):
-        if self.processed_image is not None:
-            file_dialog = QFileDialog()
-            file_dialog.setNameFilter('Images (*.png *.jpg *.jpeg)')
-            file_dialog.selectNameFilter('Images (*.png *.jpg *.jpeg)')
+        if self.image is not None:
+            image_path, _ = QFileDialog.getSaveFileName(self, 'Save Image', '', 'save Files (*.png *.jpg *.jpeg *.bmp)')
+            cv2.imwrite(image_path, self.image)
+            
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle('Image Processing')
+            msg_box.setText('Image saved successfully!')
+            msg_box.exec_()
+            
+            self.image = None
+            self.image_path = None
+            self.display_image()
 
-            if file_dialog.exec_():
-                file_name = file_dialog.selectedFiles()[0]
-                self.processed_image.save(file_name)
-                print(f'Image saved as {file_name}')
-                
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = ImageProcessingGUI()
-    window.show()
+    ex = ImageProcessingGUI()
     sys.exit(app.exec_())
     
-# Run the code and you should see a window with a button to load an image, a button to process the image, and a button to save the image. When you click the load image button, you should be able to select an image from your local machine. When you click the process image button, the image should be converted to grayscale. When you click the save image button, you should be able to save the processed image to your local machine.
-# To add more image processing techniques, you can add more buttons and radio buttons for different techniques, and update the process_image method accordingly. For example, to add a blur effect, you can add a button for blurring, a spin box for the blur radius, and update the process_image method to apply the blur effect.
