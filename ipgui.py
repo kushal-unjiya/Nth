@@ -59,7 +59,6 @@ class ImageProcessingGUI(QMainWindow):
         menubar = self.menuBar()
 
         file_menu = menubar.addMenu('File')
-        edit_menu = menubar.addMenu('Edit')
         process_menu = menubar.addMenu('Process')
         tools_menu = menubar.addMenu('Tools')
 
@@ -103,22 +102,10 @@ class ImageProcessingGUI(QMainWindow):
         flip_action.triggered.connect(self.flip_image)
         process_menu.addAction(flip_action)
 
-        reset_action = QAction('Reset', self)
-        reset_action.triggered.connect(self.reset_image)
-        edit_menu.addAction(reset_action)
-
-        undo_action = QAction('Undo', self)
-        undo_action.triggered.connect(self.undo_image)
-        edit_menu.addAction(undo_action)
-
-        redo_action = QAction('Redo', self)
-        redo_action.triggered.connect(self.redo_image)
-        edit_menu.addAction(redo_action)
-
         template_action = QAction('Template Matching', self)
         template_action.triggered.connect(self.template_matching)
         tools_menu.addAction(template_action)
-
+        
     def upload_images(self):
         image_paths, _ = QFileDialog.getOpenFileNames(self, 'Open Images', '', 'Image Files (*.png *.jpg *.jpeg *.bmp)')
         if image_paths:
