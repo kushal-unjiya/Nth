@@ -1,14 +1,15 @@
 # #i want to make simple python gui based on pyqt5 in which user upload images from local machine like jpeg,jpg,png etc then user can apply image processing techniques with two different button grayscale and rbga then save the image in local machine.
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QPushButton, QFileDialog, QMessageBox, QVBoxLayout, QHBoxLayout, QGridLayout, QScrollArea
+    QApplication, QMainWindow, QAction, QFileDialog, QLabel, QVBoxLayout, QGridLayout, QScrollArea, QWidget, QStatusBar
 )
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QPalette, QLinearGradient, QColor, QFont
+from PyQt5.QtCore import Qt, QPropertyAnimation, QRect
 import cv2
 import numpy as np
 import math
 
-class ImageProcessingGUI(QWidget):
+class ImageProcessingGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -17,9 +18,19 @@ class ImageProcessingGUI(QWidget):
         self.setWindowTitle('Image Processing GUI')
         self.setGeometry(100, 100, 1200, 800)
 
-        # Main layout
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        # Set a gradient background for the main window
+        palette = QPalette()
+        gradient = QLinearGradient(0, 0, 0, 1)
+        gradient.setCoordinateMode(QLinearGradient.ObjectBoundingMode)
+        gradient.setColorAt(0.0, QColor(255, 140, 0))
+        gradient.setColorAt(1.0, QColor(255, 69, 0))
+        palette.setBrush(QPalette.Window, gradient)
+        self.setPalette(palette)
+
+        # Central widget and layout
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
 
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
@@ -29,74 +40,10 @@ class ImageProcessingGUI(QWidget):
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
 
-        # Button layout
-        button_layout = QHBoxLayout()
-        self.layout.addLayout(button_layout)
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
 
-        # Upload button
-        self.upload_button = QPushButton('Upload Images', self)
-        self.upload_button.clicked.connect(self.upload_images)
-        button_layout.addWidget(self.upload_button)
-
-        # Grayscale button
-        self.grayscale_button = QPushButton('Grayscale', self)
-        self.grayscale_button.clicked.connect(self.grayscale_image)
-        button_layout.addWidget(self.grayscale_button)
-
-        # RGBA button
-        self.rgba_button = QPushButton('RGBA', self)
-        self.rgba_button.clicked.connect(self.rgba_image)
-        button_layout.addWidget(self.rgba_button)
-
-        # Edge detection button
-        self.edge_button = QPushButton('Edge Detection', self)
-        self.edge_button.clicked.connect(self.edge_detection)
-        button_layout.addWidget(self.edge_button)
-
-        # Denoise button
-        self.denoise_button = QPushButton('Denoise', self)
-        self.denoise_button.clicked.connect(self.denoise_image)
-        button_layout.addWidget(self.denoise_button)
-
-        # Blur button
-        self.blur_button = QPushButton('Blur', self)
-        self.blur_button.clicked.connect(self.blur_image)
-        button_layout.addWidget(self.blur_button)
-
-        # Sharpen button
-        self.sharpen_button = QPushButton('Sharpen', self)
-        self.sharpen_button.clicked.connect(self.sharpen_image)
-        button_layout.addWidget(self.sharpen_button)
-
-        # Rotate button
-        self.rotate_button = QPushButton('Rotate', self)
-        self.rotate_button.clicked.connect(self.rotate_image)
-        button_layout.addWidget(self.rotate_button)
-
-        # Flip button
-        self.flip_button = QPushButton('Flip', self)
-        self.flip_button.clicked.connect(self.flip_image)
-        button_layout.addWidget(self.flip_button)
-
-        # Reset button
-        self.reset_button = QPushButton('Reset', self)
-        self.reset_button.clicked.connect(self.reset_image)
-        button_layout.addWidget(self.reset_button)
-
-        # Undo button
-        self.undo_button = QPushButton('Undo', self)
-        self.undo_button.clicked.connect(self.undo_image)
-        button_layout.addWidget(self.undo_button)
-
-        # Redo button
-        self.redo_button = QPushButton('Redo', self)
-        self.redo_button.clicked.connect(self.redo_image)
-        button_layout.addWidget(self.redo_button)
-
-        # Save button
-        self.save_button = QPushButton('Save Images', self)
-        self.save_button.clicked.connect(self.save_images)
-        button_layout.addWidget(self.save_button)
+        self.create_menu()
 
         self.images = []
         self.original_images = []
@@ -105,7 +52,72 @@ class ImageProcessingGUI(QWidget):
         self.history_indices = []
         self.zoom_levels = []
 
+        self.setStyleSheet(self.load_stylesheet())
         self.show()
+
+    def create_menu(self):
+        menubar = self.menuBar()
+
+        file_menu = menubar.addMenu('File')
+        edit_menu = menubar.addMenu('Edit')
+        process_menu = menubar.addMenu('Process')
+        tools_menu = menubar.addMenu('Tools')
+
+        upload_action = QAction('Upload Images', self)
+        upload_action.triggered.connect(self.upload_images)
+        file_menu.addAction(upload_action)
+
+        save_action = QAction('Save Images', self)
+        save_action.triggered.connect(self.save_images)
+        file_menu.addAction(save_action)
+
+        grayscale_action = QAction('Grayscale', self)
+        grayscale_action.triggered.connect(self.grayscale_image)
+        process_menu.addAction(grayscale_action)
+
+        rgba_action = QAction('RGBA', self)
+        rgba_action.triggered.connect(self.rgba_image)
+        process_menu.addAction(rgba_action)
+
+        edge_action = QAction('Edge Detection', self)
+        edge_action.triggered.connect(self.edge_detection)
+        process_menu.addAction(edge_action)
+
+        denoise_action = QAction('Denoise', self)
+        denoise_action.triggered.connect(self.denoise_image)
+        process_menu.addAction(denoise_action)
+
+        blur_action = QAction('Blur', self)
+        blur_action.triggered.connect(self.blur_image)
+        process_menu.addAction(blur_action)
+
+        sharpen_action = QAction('Sharpen', self)
+        sharpen_action.triggered.connect(self.sharpen_image)
+        process_menu.addAction(sharpen_action)
+
+        rotate_action = QAction('Rotate', self)
+        rotate_action.triggered.connect(self.rotate_image)
+        process_menu.addAction(rotate_action)
+
+        flip_action = QAction('Flip', self)
+        flip_action.triggered.connect(self.flip_image)
+        process_menu.addAction(flip_action)
+
+        reset_action = QAction('Reset', self)
+        reset_action.triggered.connect(self.reset_image)
+        edit_menu.addAction(reset_action)
+
+        undo_action = QAction('Undo', self)
+        undo_action.triggered.connect(self.undo_image)
+        edit_menu.addAction(undo_action)
+
+        redo_action = QAction('Redo', self)
+        redo_action.triggered.connect(self.redo_image)
+        edit_menu.addAction(redo_action)
+
+        template_action = QAction('Template Matching', self)
+        template_action.triggered.connect(self.template_matching)
+        tools_menu.addAction(template_action)
 
     def upload_images(self):
         image_paths, _ = QFileDialog.getOpenFileNames(self, 'Open Images', '', 'Image Files (*.png *.jpg *.jpeg *.bmp)')
@@ -143,7 +155,7 @@ class ImageProcessingGUI(QWidget):
 
             max_width = 300
             max_height = 300
-            scaled_pixmap = pixmap.scaled(max_width, max_height, aspectRatioMode=True)
+            scaled_pixmap = pixmap.scaled(max_width, max_height, Qt.KeepAspectRatio)
             self.image_labels[i].setPixmap(scaled_pixmap)
             self.image_labels[i].setFixedSize(max_width, max_height)
             self.image_labels[i].setScaledContents(True)
@@ -151,6 +163,15 @@ class ImageProcessingGUI(QWidget):
             row = i // num_columns
             col = i % num_columns
             self.scroll_layout.addWidget(self.image_labels[i], row, col)
+
+            self.animate_image(self.image_labels[i], i)
+
+    def animate_image(self, label, index):
+        anim = QPropertyAnimation(label, b"geometry")
+        anim.setDuration(1000)
+        anim.setStartValue(QRect(label.x(), label.y() - 100, label.width(), label.height()))
+        anim.setEndValue(QRect(label.x(), label.y(), label.width(), label.height()))
+        anim.start()
 
     def grayscale_image(self):
         self._apply_to_all_images(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
@@ -207,40 +228,107 @@ class ImageProcessingGUI(QWidget):
                 self.images[i] = self.image_histories[i][self.history_indices[i]].copy()
         self.display_images()
 
-    def save_images(self):
-        save_dir = QFileDialog.getExistingDirectory(self, 'Save Images', '')
-        if save_dir:
-            for i, image in enumerate(self.images):
-                save_path = f"{save_dir}/image_{i}.png"
-                cv2.imwrite(save_path, image)
+    def template_matching(self):
+        template_path, _ = QFileDialog.getOpenFileName(self, 'Open Template Image', '', 'Image Files (*.png *.jpg *.jpeg *.bmp)')
+        if template_path:
+            template = cv2.imread(template_path, 0)
+            for i in range(len(self.images)):
+                img_gray = cv2.cvtColor(self.images[i], cv2.COLOR_BGR2GRAY)
+                w, h = template.shape[::-1]
+                res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+                threshold = 0.8
+                loc = np.where(res >= threshold)
+                rectangles = []
+                for pt in zip(*loc[::-1]):
+                    rectangles.append([int(pt[0]), int(pt[1]), int(w), int(h)])
+                rectangles, _ = cv2.groupRectangles(rectangles, 1, 0.2)
+
+                for (x, y, w, h) in rectangles:
+                    cv2.rectangle(self.images[i], (x, y), (x + w, y + h), (0, 255, 0), 2)
             
-            msg_box = QMessageBox()
-            msg_box.setWindowTitle('Image Processing')
-            msg_box.setText('Images saved successfully!')
-            msg_box.exec_()
+            self.display_images()
+
+    def save_images(self):
+        for i, image in enumerate(self.images):
+            save_path, _ = QFileDialog.getSaveFileName(self, 'Save Image', f'image_{i}.png', 'Image Files (*.png *.jpg *.jpeg *.bmp)')
+            if save_path:
+                cv2.imwrite(save_path, image)
+
+    def clear_images(self):
+        for image_label in self.image_labels:
+            self.scroll_layout.removeWidget(image_label)
+            image_label.deleteLater()
+        self.images = []
+        self.original_images = []
+        self.image_labels = []
+        self.image_histories = []
+        self.history_indices = []
+        self.zoom_levels = []
 
     def _apply_to_all_images(self, func):
         for i in range(len(self.images)):
             self.images[i] = func(self.images[i])
-            self._add_to_history(i)
+            self._update_history(i)
         self.display_images()
 
-    def _add_to_history(self, index):
+    def _update_history(self, index):
         if self.history_indices[index] < len(self.image_histories[index]) - 1:
             self.image_histories[index] = self.image_histories[index][:self.history_indices[index] + 1]
         self.image_histories[index].append(self.images[index].copy())
         self.history_indices[index] += 1
 
-    def clear_images(self):
-        for label in self.image_labels:
-            self.scroll_layout.removeWidget(label)
-            label.deleteLater()
-        self.image_labels.clear()
-        self.images.clear()
-        self.original_images.clear()
-        self.image_histories.clear()
-        self.history_indices.clear()
-        self.zoom_levels.clear()
+    def load_stylesheet(self):
+        return """
+        QMainWindow {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        QMenuBar {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8c00, stop:1 #ff4500);
+            color: #ffffff;
+            font-size: 16px;
+        }
+        QMenuBar::item {
+            background: transparent;
+            color: #ffffff;
+        }
+        QMenuBar::item:selected {
+            background: rgba(255, 255, 255, 30);
+        }
+        QMenu {
+            background-color: #3c3f41;
+            color: #ffffff;
+            font-size: 16px;
+        }
+        QMenu::item:selected {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8c00, stop:1 #ff4500);
+        }
+        QLabel {
+            color: #ffffff;
+            font-size: 14px;
+        }
+        QScrollArea {
+            background-color: #2b2b2b;
+        }
+        QStatusBar {
+            background-color: #3c3f41;
+            color: #ffffff;
+            font-size: 14px;
+        }
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8c00, stop:1 #ff4500);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease-in-out;
+        }
+        QPushButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff4500, stop:1 #ff8c00);
+            transform: scale(1.05);
+        }
+        """
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
